@@ -65,6 +65,11 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
     def lifecycle_ver = '2.4.1'
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_ver"
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0'
 
     implementation 'com.intuit.ssp:ssp-android:1.1.0'
+
+    implementation 'androidx.activity:activity-ktx:1.7.2'
+    implementation 'androidx.fragment:fragment-ktx:1.6.0'
 }

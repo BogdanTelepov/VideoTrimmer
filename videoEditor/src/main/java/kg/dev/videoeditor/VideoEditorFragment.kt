@@ -2,7 +2,6 @@ package kg.dev.videoeditor
 
 import PlayerPositionListener
 import PlayerPositionTracker
-import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
@@ -10,12 +9,12 @@ import android.os.Bundle
 import android.view.View
 import androidx.annotation.OptIn
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
@@ -26,31 +25,26 @@ import kg.dev.videoeditor.extensions.args
 import kg.dev.videoeditor.extensions.withArgs
 import kg.dev.videoeditor.utils.formatSeconds
 import kg.dev.videoeditor.utils.getDuration
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 
 
 class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPositionListener {
-
-    private val binding: FragmentVideoEditorBinding by viewBinding()
-
-
     companion object {
         private const val EXTRA_VIDEO_URI = "EXTRA_VIDEO_URI"
         fun create(filePath: Uri?) = VideoEditorFragment().withArgs(EXTRA_VIDEO_URI to filePath)
 
     }
 
+    private val binding: FragmentVideoEditorBinding by viewBinding()
+    private val viewModel: VideoEditorViewModel by viewModels()
     private val filePath: Uri by args(EXTRA_VIDEO_URI)
     private var videoPlayer: ExoPlayer? = null
     private var isVideoEnded: Boolean = false
     private var lastMinValue: Long = 0L
-    private var currentDuration: Long = 0L
     private var totalDuration: Long = 0L
     private var lastMaxValue: Long = 0L
     private var currentVolume: Float = 0f
     private val retriever = MediaMetadataRetriever()
-    private val frameArray = mutableListOf<Bitmap>()
     private val videoAdapter by lazy {
         VideoThumbNailAdapter()
     }
@@ -63,12 +57,15 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
         }
         initPlayer()
         buildMediaSource()
+        getVideoData()
         setupVideoSettings()
-        lifecycleScope.launchWhenResumed {
-            frameArray.addAll(loadThumbNails())
-            videoAdapter.submitList(frameArray)
+        setupAdapter()
+        viewModel.loadThumbNails(retriever, filePath, requireContext())
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.frameArray.collect {
+                videoAdapter.submitList(it)
+            }
         }
-
     }
 
     override fun onPause() {
@@ -96,52 +93,56 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
     private fun initPlayer() = with(binding) {
         try {
             videoPlayer = ExoPlayer.Builder(requireContext()).build()
-            playerViewLib.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-            playerViewLib.player = videoPlayer
+            playerViewLib.apply {
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                player = videoPlayer
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 val audioAttributes = AudioAttributes.Builder().setUsage(C.USAGE_MEDIA)
                     .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build()
                 videoPlayer?.setAudioAttributes(audioAttributes, true)
             }
 
-            tracker?.player = videoPlayer
-            tracker?.playerPositionListener = this@VideoEditorFragment
-
+            tracker?.apply {
+                player = videoPlayer
+                playerPositionListener = this@VideoEditorFragment
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    private fun buildMediaSource() {
+    private fun buildMediaSource() = with(binding) {
         try {
             val mediaItem = MediaItem.fromUri(filePath)
-            videoPlayer?.setMediaItem(mediaItem)
-            videoPlayer?.prepare()
-            videoPlayer?.addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    when (playbackState) {
-                        Player.STATE_ENDED -> {
-                            isVideoEnded = true
-                            binding.checkboxPlay.isChecked = false
-                            binding.checkboxPlay.isSelected = false
-                            videoPlayer?.playWhenReady = false
+            videoPlayer?.apply {
+                setMediaItem(mediaItem)
+                prepare()
+                addListener(object : Player.Listener {
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        when (playbackState) {
+                            Player.STATE_ENDED -> {
+                                isVideoEnded = true
+                                checkboxPlay.apply {
+                                    isChecked = false
+                                    isSelected = false
+                                }
+                                videoPlayer?.playWhenReady = false
+                            }
+
+                            Player.STATE_READY -> {
+                                isVideoEnded = false
+                            }
+
+                            Player.STATE_BUFFERING, Player.STATE_IDLE -> {}
                         }
-
-                        Player.STATE_READY -> {
-                            isVideoEnded = false
-                            startProgress()
-
-                        }
-
-                        Player.STATE_BUFFERING, Player.STATE_IDLE -> {}
                     }
-                }
-            })
+                })
+            }
             currentVolume = videoPlayer?.volume ?: 0f
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
     }
 
     private fun onVideoClicked(isChecked: Boolean) {
@@ -157,7 +158,6 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
         }
     }
 
-
     private fun setupVideoSettings() = with(binding) {
         checkboxPlay.setOnCheckedChangeListener { _, isChecked ->
             onVideoClicked(isChecked)
@@ -167,15 +167,19 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
             muteSound(isChecked)
         }
 
-        totalDuration = requireContext().getDuration(filePath)
-        lastMaxValue = totalDuration
         tvVideoStopDuration.text = formatSeconds(totalDuration)
         ivZoom.setOnCheckedChangeListener { _, isChecked ->
             changeVideoSizeMode(isChecked)
         }
+    }
 
+    private fun setupAdapter() = with(binding) {
         rvVideoSteps.adapter = videoAdapter
+    }
 
+    private fun getVideoData() {
+        totalDuration = requireContext().getDuration(filePath)
+        lastMaxValue = totalDuration
     }
 
     private fun seekTo(sec: Long) {
@@ -191,39 +195,13 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
     }
 
     @OptIn(UnstableApi::class)
-    private fun changeVideoSizeMode(isChecked: Boolean) {
+    private fun changeVideoSizeMode(isChecked: Boolean) = with(binding) {
         if (isChecked) {
-            binding.playerViewLib.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            playerViewLib.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
         } else {
-            binding.playerViewLib.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+            playerViewLib.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
         }
     }
-
-    private fun startProgress() {
-
-    }
-
-
-    private suspend fun loadThumbNails(): List<Bitmap> = withContext(Dispatchers.IO) {
-        retriever.setDataSource(requireContext(), filePath)
-        val duration =
-            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0L
-        val frameArray = mutableListOf<Bitmap>()
-        var currentTime = 1000L
-        while (currentTime < duration) {
-            val frame = retriever.getFrameAtTime(
-                currentTime * 1000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC
-            )
-            frame?.let {
-                frameArray.add(it)
-            }
-            currentTime += 1000
-        }
-
-        return@withContext frameArray
-
-    }
-
 }
 
 

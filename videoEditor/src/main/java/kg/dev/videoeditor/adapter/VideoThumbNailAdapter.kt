@@ -1,7 +1,6 @@
 package kg.dev.videoeditor.adapter
 
 import android.graphics.Bitmap
-import android.util.DisplayMetrics
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -52,21 +51,10 @@ class VideoThumbNailAdapter :
         }
 
         private fun getScreenWidth(itemWidth: Int): Int {
-            val displayMetrics = DisplayMetrics()
             (itemContext.resources.displayMetrics).apply {
                 return widthPixels - itemContext.dip(itemWidth)
             }
         }
-
-        private fun getScreenWidth(): Int {
-            val displayMetrics = DisplayMetrics()
-            // Здесь используется context.resources.displayMetrics, чтобы получить метрики экрана
-            // Вызывать этот метод нужно в контексте, который связан с активностью или фрагментом
-            (itemContext.resources.displayMetrics).apply {
-                return widthPixels
-            }
-        }
-
     }
 
 

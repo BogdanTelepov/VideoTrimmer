@@ -19,6 +19,20 @@ fun Context.getDuration(videoPath: Uri): Long {
     }
 }
 
+fun Context.getDurationInMs(videoPath: Uri): Long {
+    return try {
+        val retriever = MediaMetadataRetriever()
+        retriever.setDataSource(this, videoPath)
+        val time = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+        val timeInMilliSec = time?.toLong()
+        retriever.release()
+        return timeInMilliSec ?: 0L
+    } catch (e: Exception) {
+        e.printStackTrace()
+        0L
+    }
+}
+
 fun formatSeconds(timeInSeconds: Long): String? {
     val hours = timeInSeconds / 3600
     val secondsLeft = timeInSeconds - hours * 3600

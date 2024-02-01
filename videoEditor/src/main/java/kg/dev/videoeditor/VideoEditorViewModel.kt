@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class VideoEditorViewModel : ViewModel() {
 
@@ -18,7 +19,7 @@ class VideoEditorViewModel : ViewModel() {
     val frameArray get() = _frameArray.asStateFlow()
 
     fun loadThumbNails(retriever: MediaMetadataRetriever, uri: Uri, context: Context) {
-        viewModelScope.launch(Dispatchers.Default) {
+        viewModelScope.launch(Dispatchers.IO) {
             val array = mutableListOf<Bitmap>()
             retriever.setDataSource(context, uri)
             val duration =
@@ -35,7 +36,9 @@ class VideoEditorViewModel : ViewModel() {
                 }
                 currentTime += 1000
             }
-            _frameArray.value = array
+            withContext(Dispatchers.Main) {
+                _frameArray.value = array
+            }
         }
     }
 

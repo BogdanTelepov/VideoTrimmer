@@ -7,7 +7,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.widget.SeekBar
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
@@ -17,24 +16,22 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.recyclerview.widget.DividerItemDecoration
 import by.kirich1409.viewbindingdelegate.viewBinding
 import kg.dev.videoeditor.adapter.VideoDurationInSecAdapter
 import kg.dev.videoeditor.adapter.VideoThumbNailAdapter
 import kg.dev.videoeditor.databinding.FragmentVideoEditorBinding
 import kg.dev.videoeditor.extensions.args
-import kg.dev.videoeditor.extensions.dip
 import kg.dev.videoeditor.extensions.getDrawableCompat
 import kg.dev.videoeditor.extensions.withArgs
-import kg.dev.videoeditor.utils.SpaceItemDecoration
-import kg.dev.videoeditor.utils.SpaceItemDecoration.Companion.HORIZONTAL
+import kg.dev.videoeditor.widgets.EmptySpaceDecorator
+import kg.dev.videoeditor.widgets.HorizontalCenteredDotItemDecoration
 import kg.dev.videoeditor.utils.formatSeconds
 import kg.dev.videoeditor.utils.getDuration
 import kg.dev.videoeditor.utils.getDurationInMs
+import kg.dev.videoeditor.utils.VideoTrimUtils.RECYCLER_VIEW_PADDING
 import kotlinx.coroutines.launch
 
 
@@ -75,13 +72,14 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
         buildMediaSource()
         getVideoData()
         setupVideoSettings()
-        setupAdapter()
         parseDuration(totalDuration)
-        setupSlider()
+        setupAdapter()
+
         viewModel.loadThumbNails(retriever, filePath, requireContext())
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.frameArray.collect {
                 videoAdapter.submitList(it)
+
             }
         }
         videoDurationInSecAdapter.setItems(listSeconds)
@@ -102,13 +100,10 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
 
         }
     }
-
     @OptIn(UnstableApi::class)
     override fun onPlayerPositionChanged(position: Long) {
         binding.tvVideoStartDuration.text = formatSeconds(position.div(1000))
-        // Log.d("Video ->", position.toString())
-        Log.d("Video ->", "${position.toInt()}")
-        binding.seekBar.progress = position.toInt()
+
     }
 
     @OptIn(UnstableApi::class)
@@ -155,7 +150,7 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
                                     isSelected = false
                                 }
                                 videoPlayer?.playWhenReady = false
-                                binding.seekBar.progress = 0
+
                             }
 
                             Player.STATE_READY -> {
@@ -204,15 +199,17 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
     }
 
     private fun setupAdapter() = with(binding) {
-        rvVideoSteps.adapter = videoAdapter
-        rvVideoSteps.addItemDecoration(
-            DividerItemDecoration(
-                requireContext(), DividerItemDecoration.HORIZONTAL
+        rvVideoSteps.apply {
+            adapter = videoAdapter
+            addItemDecoration(
+                EmptySpaceDecorator(
+                    RECYCLER_VIEW_PADDING
+                )
             )
-        )
+        }
         rvVideoDurationInSec.apply {
             this.adapter = videoDurationInSecAdapter
-            this.addItemDecoration(SpaceItemDecoration(dip(2), HORIZONTAL))
+            this.addItemDecoration(HorizontalCenteredDotItemDecoration(requireContext()))
         }
     }
 
@@ -220,7 +217,6 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
     private fun getVideoData() {
         totalDuration = requireContext().getDuration(filePath)
         totalDurationInMs = requireContext().getDurationInMs(filePath).toInt()
-        Log.d("Video total Duration ->", totalDurationInMs.toString())
         lastMaxValue = totalDuration
     }
 
@@ -231,20 +227,17 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
     private fun muteSound(isChecked: Boolean) {
         val icon = if (isChecked) R.drawable.ic_mute else R.drawable.ic_volume
         binding.checkboxVolume.setImageDrawable(requireContext().getDrawableCompat(icon))
-        if (isChecked) {
-            videoPlayer?.volume = 0f
-        } else {
-            videoPlayer?.volume = currentVolume
-        }
+        val volume = if (isChecked) 0f else currentVolume
+        videoPlayer?.volume = volume
+
     }
 
     @OptIn(UnstableApi::class)
     private fun changeVideoSizeMode(isChecked: Boolean) = with(binding) {
-        if (isChecked) {
-            playerViewLib.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-        } else {
-            playerViewLib.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-        }
+        val mode =
+            if (isChecked) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT
+        playerViewLib.resizeMode = mode
+
     }
 
     private fun parseDuration(duration: Long) {
@@ -252,7 +245,7 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
         if (duration > 15) {
             val firstElement = list.first()
             val lastElement = list.last()
-            val divisibleBy10 = list.filter { it % 10 == 0 }
+            val divisibleBy10 = list.filter { it % 5 == 0 }
             val resultArray = mutableListOf<Int>().apply {
                 add(firstElement)
                 addAll(divisibleBy10)
@@ -261,35 +254,6 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
             listSeconds.addAll(resultArray)
         } else {
             listSeconds.addAll(list)
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    @OptIn(UnstableApi::class)
-    private fun setupSlider() = with(binding) {
-        seekBar.max = totalDurationInMs.toInt()
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                Log.d("Video current posit ->", progress.toString())
-                videoPlayer?.seekTo(progress.toLong())
-            }
-
-            override fun onStartTrackingTouch(p0: SeekBar?) {
-
-            }
-
-            override fun onStopTrackingTouch(p0: SeekBar?) {
-
-            }
-        })
-
-
-
-        videoSlider.valueFrom = lastMinValue.toFloat()
-        videoSlider.valueTo = totalDurationInMs.toFloat()
-        videoSlider.addOnChangeListener { slider, value, fromUser ->
-            Log.d("Video total Duration ->", value.toString())
-            videoPlayer?.seekTo(value.toLong())
         }
     }
 }

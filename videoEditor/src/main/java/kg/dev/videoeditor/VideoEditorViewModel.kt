@@ -6,6 +6,7 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kg.dev.videoeditor.utils.VideoTrimUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +14,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class VideoEditorViewModel : ViewModel() {
-
 
     private val _frameArray: MutableStateFlow<List<Bitmap>> = MutableStateFlow(emptyList())
     val frameArray get() = _frameArray.asStateFlow()
@@ -31,7 +31,16 @@ class VideoEditorViewModel : ViewModel() {
                 val frame = retriever.getFrameAtTime(
                     currentTime * 1000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC
                 )
-                frame?.let {
+                val newBitmap =
+                    frame?.let {
+                        Bitmap.createScaledBitmap(
+                            it,
+                            VideoTrimUtils.VIDEO_FRAMES_WIDTH,
+                            VideoTrimUtils.THUMB_HEIGHT,
+                            false
+                        )
+                    }
+                newBitmap?.let {
                     array.add(it)
                 }
                 currentTime += 1000
@@ -39,6 +48,7 @@ class VideoEditorViewModel : ViewModel() {
             withContext(Dispatchers.Main) {
                 _frameArray.value = array
             }
+            retriever.release()
         }
     }
 

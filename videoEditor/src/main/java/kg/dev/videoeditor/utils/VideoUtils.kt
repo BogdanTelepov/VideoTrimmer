@@ -33,7 +33,7 @@ fun Context.getDurationInMs(videoPath: Uri): Long {
     }
 }
 
-fun formatSeconds(timeInSeconds: Long): String? {
+fun formatSeconds(timeInSeconds: Long): String {
     val hours = timeInSeconds / 3600
     val secondsLeft = timeInSeconds - hours * 3600
     val minutes = secondsLeft / 60

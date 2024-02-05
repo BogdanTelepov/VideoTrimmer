@@ -2,11 +2,15 @@ package kg.dev.videoeditor
 
 import PlayerPositionListener
 import PlayerPositionTracker
+import android.animation.ValueAnimator
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
+import android.view.animation.LinearInterpolator
+import android.widget.FrameLayout
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
@@ -19,6 +23,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import by.kirich1409.viewbindingdelegate.viewBinding
 import kg.dev.videoeditor.adapter.VideoDurationInSecAdapter
 import kg.dev.videoeditor.adapter.VideoThumbNailAdapter
@@ -26,13 +32,19 @@ import kg.dev.videoeditor.databinding.FragmentVideoEditorBinding
 import kg.dev.videoeditor.extensions.args
 import kg.dev.videoeditor.extensions.getDrawableCompat
 import kg.dev.videoeditor.extensions.withArgs
-import kg.dev.videoeditor.widgets.EmptySpaceDecorator
-import kg.dev.videoeditor.widgets.HorizontalCenteredDotItemDecoration
+import kg.dev.videoeditor.utils.VideoTrimUtils.MAX_COUNT_RANGE
+import kg.dev.videoeditor.utils.VideoTrimUtils.MAX_CUT_DURATION
+import kg.dev.videoeditor.utils.VideoTrimUtils.MIN_CUT_DURATION
+import kg.dev.videoeditor.utils.VideoTrimUtils.RECYCLER_VIEW_PADDING
+import kg.dev.videoeditor.utils.VideoTrimUtils.VIDEO_FRAMES_WIDTH
 import kg.dev.videoeditor.utils.formatSeconds
 import kg.dev.videoeditor.utils.getDuration
 import kg.dev.videoeditor.utils.getDurationInMs
-import kg.dev.videoeditor.utils.VideoTrimUtils.RECYCLER_VIEW_PADDING
+import kg.dev.videoeditor.widgets.HorizontalCenteredDotItemDecoration
+import kg.dev.videoeditor.widgets.RangeSeekBar
+import kg.dev.videoeditor.widgets.VideoThumbSpacingItemDecoration
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 
 class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPositionListener {
@@ -62,6 +74,101 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
         VideoDurationInSecAdapter()
     }
 
+    private lateinit var seekBar: RangeSeekBar
+
+    private var leftProgress: Long = 0
+    private var rightProgress: Long = 0
+
+    private var scrollPos: Long = 0
+    private var isSeeking = false
+    private var lastScrollX = 0
+    private val mScaledTouchSlop = 0
+    private var averageMsPx = 0f
+    private var averagePxMs = 0f
+    private var isOverScaledTouchSlop = false
+    private lateinit var animator: ValueAnimator
+
+
+    private val mOnRangeSeekBarChangeListener: RangeSeekBar.OnRangeSeekBarChangeListener =
+        RangeSeekBar.OnRangeSeekBarChangeListener { bar, minValue, maxValue, action, isMin, pressedThumb ->
+            leftProgress = minValue + scrollPos
+            rightProgress = maxValue + scrollPos
+            when (action) {
+                MotionEvent.ACTION_DOWN -> {
+                    isSeeking = false
+                    // videoPause()
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+
+                    isSeeking = true
+                    videoPlayer?.seekTo((if (pressedThumb === RangeSeekBar.Thumb.MIN) leftProgress else rightProgress))
+                }
+
+                MotionEvent.ACTION_UP -> {
+
+                    isSeeking = false
+                    //从minValue开始播
+                    videoPlayer?.seekTo(leftProgress)
+//                    videoStart()
+//                    mTvShootTip.setText(
+//                        String.format(
+//                            "裁剪 %d s", (rightProgress - leftProgress) / 1000
+//                        )
+//                    )
+                }
+
+                else -> {}
+            }
+        }
+
+    private val mOnScrollListener: RecyclerView.OnScrollListener = object :
+        RecyclerView.OnScrollListener() {
+        override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+            super.onScrollStateChanged(recyclerView, newState)
+
+            if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                isSeeking = false
+                //                videoStart();
+            } else {
+                isSeeking = true
+                if (isOverScaledTouchSlop) {
+                    //videoPause()
+                }
+            }
+        }
+
+        override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+            super.onScrolled(recyclerView, dx, dy)
+            isSeeking = false
+            val scrollX = getScrollXDistance()
+
+            if (abs(lastScrollX - scrollX) < mScaledTouchSlop) {
+                isOverScaledTouchSlop = false
+                return
+            }
+            isOverScaledTouchSlop = true
+
+            //初始状态,why ? 因为默认的时候有56dp的空白！
+            if (scrollX == RECYCLER_VIEW_PADDING) {
+                scrollPos = 0
+            } else {
+                // why 在这里处理一下,因为onScrollStateChanged早于onScrolled回调
+                // videoPause()
+                isSeeking = true
+                scrollPos =
+                    (averageMsPx * (RECYCLER_VIEW_PADDING + scrollX)).toLong()
+
+                leftProgress = seekBar.selectedMinValue + scrollPos
+                rightProgress = seekBar.selectedMaxValue + scrollPos
+
+                videoPlayer?.seekTo(leftProgress)
+            }
+            lastScrollX = scrollX
+        }
+    }
+
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -73,6 +180,11 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
         getVideoData()
         setupVideoSettings()
         parseDuration(totalDuration)
+        binding.rvVideoSteps.apply {
+            adapter = videoAdapter
+            addOnScrollListener(mOnScrollListener)
+
+        }
         setupAdapter()
 
         viewModel.loadThumbNails(retriever, filePath, requireContext())
@@ -97,12 +209,21 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
             videoPlayer = null
             tracker?.release()
             tracker = null
-
+            binding.rvVideoSteps.removeOnScrollListener(mOnScrollListener)
         }
     }
+
     @OptIn(UnstableApi::class)
     override fun onPlayerPositionChanged(position: Long) {
         binding.tvVideoStartDuration.text = formatSeconds(position.div(1000))
+        if (position >= rightProgress) {
+        //    videoPlayer?.seekTo(leftProgress)
+            binding.positionIcon.clearAnimation()
+            if (animator.isRunning) {
+                animator.cancel()
+            }
+            anim()
+        }
 
     }
 
@@ -150,11 +271,24 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
                                     isSelected = false
                                 }
                                 videoPlayer?.playWhenReady = false
+                                if (positionIcon.visibility == View.VISIBLE) {
+                                    positionIcon.visibility = View.GONE
+                                }
+                                positionIcon.clearAnimation()
+                                if (animator.isRunning) {
+                                    animator.cancel()
+                                }
 
                             }
 
                             Player.STATE_READY -> {
                                 isVideoEnded = false
+                                anim()
+                                positionIcon.clearAnimation()
+                                if (animator.isRunning) {
+                                    animator.cancel()
+                                }
+
                             }
 
                             Player.STATE_BUFFERING, Player.STATE_IDLE -> {}
@@ -199,18 +333,78 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
     }
 
     private fun setupAdapter() = with(binding) {
+        //for video edit
+        val startPosition: Long = 0
+        val endPosition: Long = totalDuration
+        val thumbnailsCount: Int
+        val rangeWidth: Int
+        val over10S: Boolean
+        if (endPosition <= MAX_CUT_DURATION) {
+            over10S = false
+            thumbnailsCount = MAX_COUNT_RANGE
+            rangeWidth = VIDEO_FRAMES_WIDTH
+        } else {
+            over10S = true
+            thumbnailsCount =
+                (endPosition * 1.0f / (MAX_CUT_DURATION * 1.0f) * MAX_COUNT_RANGE).toInt()
+            rangeWidth = VIDEO_FRAMES_WIDTH / MAX_COUNT_RANGE * thumbnailsCount
+        }
+
         rvVideoSteps.apply {
-            adapter = videoAdapter
             addItemDecoration(
-                EmptySpaceDecorator(
-                    RECYCLER_VIEW_PADDING
+                VideoThumbSpacingItemDecoration(
+                    RECYCLER_VIEW_PADDING, thumbnailsCount
                 )
             )
         }
+
+        //init seekBar
+
+        //init seekBar
+        if (over10S) {
+            seekBar = RangeSeekBar(
+                requireContext(), 0L, MAX_CUT_DURATION
+            )
+            seekBar.selectedMinValue = 0L
+            seekBar.selectedMaxValue = MAX_CUT_DURATION
+        } else {
+            seekBar = RangeSeekBar(requireContext(), 0L, endPosition)
+            seekBar.selectedMinValue = 0L
+            seekBar.selectedMaxValue = endPosition
+        }
+
+        seekBar.setMin_cut_time(MIN_CUT_DURATION) //设置最小裁剪时间
+
+        seekBar.isNotifyWhileDragging = true
+        seekBar.setOnRangeSeekBarChangeListener(mOnRangeSeekBarChangeListener)
+        binding.seekBarLayout.addView(seekBar)
+        averageMsPx = totalDuration * 1.0f / rangeWidth * 1.0f
+
+
+        //init pos icon start
+        leftProgress = 0
+        rightProgress = if (over10S) {
+            MAX_CUT_DURATION
+        } else {
+            endPosition
+        }
+
+        averagePxMs = VIDEO_FRAMES_WIDTH * 1.0f / (rightProgress - leftProgress)
+
         rvVideoDurationInSec.apply {
             this.adapter = videoDurationInSecAdapter
             this.addItemDecoration(HorizontalCenteredDotItemDecoration(requireContext()))
         }
+    }
+
+
+    private fun getScrollXDistance(): Int {
+        val layoutManager: LinearLayoutManager =
+            binding.rvVideoSteps.layoutManager as LinearLayoutManager
+        val position: Int = layoutManager.findFirstVisibleItemPosition()
+        val firstVisibleChildView: View? = layoutManager.findViewByPosition(position)
+        val itemWidth = firstVisibleChildView?.width
+        return position * itemWidth!! - firstVisibleChildView.left
     }
 
     @OptIn(UnstableApi::class)
@@ -255,6 +449,32 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
         } else {
             listSeconds.addAll(list)
         }
+    }
+
+
+    private fun anim() = with(binding) {
+
+        if (positionIcon.visibility == View.GONE) {
+            positionIcon.visibility = View.VISIBLE
+        }
+        val params = positionIcon
+            .layoutParams as FrameLayout.LayoutParams
+        val start: Int =
+            (RECYCLER_VIEW_PADDING + (leftProgress /*mVideoView.getCurrentPosition()*/ - scrollPos) * averagePxMs).toInt()
+        val end: Int =
+            (RECYCLER_VIEW_PADDING + (rightProgress - scrollPos) * averagePxMs).toInt()
+        animator = ValueAnimator
+            .ofInt(start, end)
+            .setDuration(
+                rightProgress - scrollPos - (leftProgress /*mVideoView.getCurrentPosition()*/
+                        - scrollPos)
+            )
+        animator.interpolator = LinearInterpolator()
+        animator.addUpdateListener { animation ->
+            params.leftMargin = animation.animatedValue as Int
+            positionIcon.layoutParams = params
+        }
+        animator.start()
     }
 }
 

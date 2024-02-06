@@ -10,9 +10,9 @@ import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
 import android.view.animation.LinearInterpolator
-import android.widget.FrameLayout
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -91,25 +91,29 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
 
     private val mOnRangeSeekBarChangeListener: RangeSeekBar.OnRangeSeekBarChangeListener =
         RangeSeekBar.OnRangeSeekBarChangeListener { bar, minValue, maxValue, action, isMin, pressedThumb ->
-            leftProgress = minValue + scrollPos
-            rightProgress = maxValue + scrollPos
+            leftProgress = (minValue + scrollPos)
+            rightProgress = (maxValue + scrollPos)
             when (action) {
                 MotionEvent.ACTION_DOWN -> {
                     isSeeking = false
+                    anim()
                     // videoPause()
                 }
 
                 MotionEvent.ACTION_MOVE -> {
-
+                    anim()
                     isSeeking = true
-                    videoPlayer?.seekTo((if (pressedThumb === RangeSeekBar.Thumb.MIN) leftProgress else rightProgress))
+                    //  videoPlayer?.seekTo(leftProgress)
+                    seekTo((if (pressedThumb === RangeSeekBar.Thumb.MIN) leftProgress else rightProgress))
+                    anim()
                 }
 
                 MotionEvent.ACTION_UP -> {
 
                     isSeeking = false
-                    //从minValue开始播
+
                     videoPlayer?.seekTo(leftProgress)
+                    anim()
 //                    videoStart()
 //                    mTvShootTip.setText(
 //                        String.format(
@@ -122,51 +126,51 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
             }
         }
 
-    private val mOnScrollListener: RecyclerView.OnScrollListener = object :
-        RecyclerView.OnScrollListener() {
-        override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-            super.onScrollStateChanged(recyclerView, newState)
+    private val mOnScrollListener: RecyclerView.OnScrollListener =
+        object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
 
-            if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                isSeeking = false
-                //                videoStart();
-            } else {
-                isSeeking = true
-                if (isOverScaledTouchSlop) {
-                    //videoPause()
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    isSeeking = false
+                    //                videoStart();
+                } else {
+                    isSeeking = true
+                    if (isOverScaledTouchSlop) {
+                        //videoPause()
+                    }
                 }
             }
-        }
 
-        override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-            super.onScrolled(recyclerView, dx, dy)
-            isSeeking = false
-            val scrollX = getScrollXDistance()
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                isSeeking = false
+                val scrollX = getScrollXDistance()
 
-            if (abs(lastScrollX - scrollX) < mScaledTouchSlop) {
-                isOverScaledTouchSlop = false
-                return
+                if (abs(lastScrollX - scrollX) < mScaledTouchSlop) {
+                    isOverScaledTouchSlop = false
+                    return
+                }
+                isOverScaledTouchSlop = true
+
+                //初始状态,why ? 因为默认的时候有56dp的空白！
+                if (scrollX == RECYCLER_VIEW_PADDING) {
+                    scrollPos = 0
+                } else {
+                    // why 在这里处理一下,因为onScrollStateChanged早于onScrolled回调
+                    // videoPause()
+                    isSeeking = true
+                    scrollPos = (averageMsPx * (RECYCLER_VIEW_PADDING + scrollX)).toLong()
+
+                    leftProgress = seekBar.selectedMinValue + scrollPos
+                    rightProgress = seekBar.selectedMaxValue + scrollPos
+
+                    // videoPlayer?.seekTo(leftProgress)
+                }
+                lastScrollX = scrollX
+                anim()
             }
-            isOverScaledTouchSlop = true
-
-            //初始状态,why ? 因为默认的时候有56dp的空白！
-            if (scrollX == RECYCLER_VIEW_PADDING) {
-                scrollPos = 0
-            } else {
-                // why 在这里处理一下,因为onScrollStateChanged早于onScrolled回调
-                // videoPause()
-                isSeeking = true
-                scrollPos =
-                    (averageMsPx * (RECYCLER_VIEW_PADDING + scrollX)).toLong()
-
-                leftProgress = seekBar.selectedMinValue + scrollPos
-                rightProgress = seekBar.selectedMaxValue + scrollPos
-
-                videoPlayer?.seekTo(leftProgress)
-            }
-            lastScrollX = scrollX
         }
-    }
 
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -186,7 +190,7 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
 
         }
         setupAdapter()
-
+        anim()
         viewModel.loadThumbNails(retriever, filePath, requireContext())
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.frameArray.collect {
@@ -216,15 +220,14 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
     @OptIn(UnstableApi::class)
     override fun onPlayerPositionChanged(position: Long) {
         binding.tvVideoStartDuration.text = formatSeconds(position.div(1000))
-        if (position >= rightProgress) {
-        //    videoPlayer?.seekTo(leftProgress)
-            binding.positionIcon.clearAnimation()
-            if (animator.isRunning) {
-                animator.cancel()
+        if ((videoPlayer?.currentPosition ?: 0L) > rightProgress) {
+            //seekTo(leftProgress)
+            videoPlayer?.playWhenReady = false
+            binding.checkboxPlay.apply {
+                isChecked = false
+                isSelected = false
             }
-            anim()
         }
-
     }
 
     @OptIn(UnstableApi::class)
@@ -271,29 +274,28 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
                                     isSelected = false
                                 }
                                 videoPlayer?.playWhenReady = false
-                                if (positionIcon.visibility == View.VISIBLE) {
-                                    positionIcon.visibility = View.GONE
-                                }
+
                                 positionIcon.clearAnimation()
                                 if (animator.isRunning) {
                                     animator.cancel()
                                 }
+                                anim()
 
                             }
 
                             Player.STATE_READY -> {
                                 isVideoEnded = false
-                                anim()
-                                positionIcon.clearAnimation()
-                                if (animator.isRunning) {
-                                    animator.cancel()
-                                }
+//                                positionIcon.clearAnimation()
+//                                if (animator.isRunning) {
+//                                    animator.cancel()
+//                                }
 
                             }
 
                             Player.STATE_BUFFERING, Player.STATE_IDLE -> {}
                         }
                     }
+
                 })
             }
             currentVolume = videoPlayer?.volume ?: 0f
@@ -302,16 +304,33 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
         }
     }
 
-    private fun onVideoClicked(isChecked: Boolean) {
-        val icon = if (isChecked) R.drawable.ic_pause else R.drawable.ic_play
-        binding.checkboxPlay.setImageDrawable(requireContext().getDrawableCompat(icon))
+    private fun onVideoClicked(isCheckedBox: Boolean) {
+        val icon = if (isCheckedBox) R.drawable.ic_pause else R.drawable.ic_play
+        binding.checkboxPlay.apply {
+            setImageDrawable(requireContext().getDrawableCompat(icon))
+            isChecked = isCheckedBox
+            isSelected = isCheckedBox
+
+        }
         try {
+            anim()
             if (isVideoEnded) {
+
                 seekTo(lastMinValue)
                 videoPlayer?.playWhenReady = true
                 return
             }
-            videoPlayer?.playWhenReady = isChecked
+            videoPlayer?.seekTo(leftProgress)
+            videoPlayer?.playWhenReady = isCheckedBox
+
+            if (isCheckedBox) {
+                animator.start()
+
+            } else {
+                if (animator.isRunning) {
+                    animator.pause()
+                }
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -335,7 +354,7 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
     private fun setupAdapter() = with(binding) {
         //for video edit
         val startPosition: Long = 0
-        val endPosition: Long = totalDuration
+        val endPosition: Long = totalDuration * 1000L
         val thumbnailsCount: Int
         val rangeWidth: Int
         val over10S: Boolean
@@ -382,7 +401,7 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
 
 
         //init pos icon start
-        leftProgress = 0
+        //leftProgress = 0
         rightProgress = if (over10S) {
             MAX_CUT_DURATION
         } else {
@@ -415,7 +434,7 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
     }
 
     private fun seekTo(sec: Long) {
-        if (videoPlayer != null) videoPlayer?.seekTo(sec * 1000)
+        if (videoPlayer != null) videoPlayer?.seekTo(sec)
     }
 
     private fun muteSound(isChecked: Boolean) {
@@ -457,24 +476,18 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
         if (positionIcon.visibility == View.GONE) {
             positionIcon.visibility = View.VISIBLE
         }
-        val params = positionIcon
-            .layoutParams as FrameLayout.LayoutParams
+        val params = positionIcon.layoutParams as ConstraintLayout.LayoutParams
         val start: Int =
             (RECYCLER_VIEW_PADDING + (leftProgress /*mVideoView.getCurrentPosition()*/ - scrollPos) * averagePxMs).toInt()
-        val end: Int =
-            (RECYCLER_VIEW_PADDING + (rightProgress - scrollPos) * averagePxMs).toInt()
-        animator = ValueAnimator
-            .ofInt(start, end)
-            .setDuration(
-                rightProgress - scrollPos - (leftProgress /*mVideoView.getCurrentPosition()*/
-                        - scrollPos)
-            )
+        val end: Int = (RECYCLER_VIEW_PADDING + (rightProgress - scrollPos) * averagePxMs).toInt()
+        animator = ValueAnimator.ofInt(start, end).setDuration(
+            rightProgress - scrollPos - (leftProgress /*mVideoView.getCurrentPosition()*/ - scrollPos)
+        )
         animator.interpolator = LinearInterpolator()
         animator.addUpdateListener { animation ->
             params.leftMargin = animation.animatedValue as Int
             positionIcon.layoutParams = params
         }
-        animator.start()
     }
 }
 

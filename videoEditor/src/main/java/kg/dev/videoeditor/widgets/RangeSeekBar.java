@@ -114,7 +114,7 @@ public class RangeSeekBar extends View {
         //绘制白色边框
         rectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         rectPaint.setStyle(Paint.Style.FILL);
-        rectPaint.setColor(Color.parseColor("#ffffff"));
+        rectPaint.setColor(Color.parseColor("#14ABCC"));
         //绘制左右两边灰色线条
         mGrayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mGrayPaint.setColor(getContext().getResources().getColor(R.color.cccccc));

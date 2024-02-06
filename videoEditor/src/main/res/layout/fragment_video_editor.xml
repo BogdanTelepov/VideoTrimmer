@@ -162,7 +162,10 @@
         tools:listitem="@layout/item_video_step" />
 
 
+
+
     <FrameLayout
+        android:id="@+id/frameLayout"
         android:layout_width="match_parent"
         android:layout_height="62dp"
         android:layout_marginTop="@dimen/_16ssp"
@@ -177,12 +180,6 @@
             android:orientation="horizontal"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
-        <ImageView
-            android:id="@+id/positionIcon"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginLeft="24dp"
-            android:src="@drawable/shape_seek_bar" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -210,5 +207,14 @@
 
     </FrameLayout>
 
+    <ImageView
+        android:id="@+id/positionIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginLeft="24dp"
+        android:src="@drawable/shape_seek_bar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/rvVideoDurationInSec" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

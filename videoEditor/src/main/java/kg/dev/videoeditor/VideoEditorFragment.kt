@@ -315,21 +315,16 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
         try {
             anim()
             if (isVideoEnded) {
-
                 seekTo(lastMinValue)
                 videoPlayer?.playWhenReady = true
                 return
             }
-            videoPlayer?.seekTo(leftProgress)
+            //  videoPlayer?.seekTo(leftProgress)
             videoPlayer?.playWhenReady = isCheckedBox
-
             if (isCheckedBox) {
                 animator.start()
-
             } else {
-                if (animator.isRunning) {
-                    animator.pause()
-                }
+                animator.pause()
             }
         } catch (e: Exception) {
             e.printStackTrace()

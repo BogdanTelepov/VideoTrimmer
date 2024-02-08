@@ -145,6 +145,12 @@ public class RangeSeekBar extends View {
 
         float rangeL = normalizedToScreen(normalizedMinValue);
         float rangeR = normalizedToScreen(normalizedMaxValue);
+        listener.onDrawProcess(rangeL);
+        listener.onDrawProcessRight(rangeR);
+
+        Log.e("onDrawL", rangeL + "");
+        Log.e("rangeR", rangeR + "");
+
         float scale_pro = (rangeR - rangeL) / mBitmapPro.getWidth();
         if (scale_pro > 0) {
             try {
@@ -319,11 +325,14 @@ public class RangeSeekBar extends View {
         }
     }
 
+
+    public float x = 0;
+
     private void trackTouchEvent(MotionEvent event) {
         if (event.getPointerCount() > 1) return;
         Log.e(TAG, "trackTouchEvent: " + event.getAction() + " x: " + event.getX());
         final int pointerIndex = event.findPointerIndex(mActivePointerId);// 得到按下点的index
-        float x = 0;
+        x = 0;
         try {
             x = event.getX(pointerIndex);
         } catch (Exception e) {
@@ -578,6 +587,11 @@ public class RangeSeekBar extends View {
     public interface OnRangeSeekBarChangeListener {
         void onRangeSeekBarValuesChanged(RangeSeekBar bar, long minValue, long maxValue, int action,
                                          boolean isMin, Thumb pressedThumb);
+
+
+        void onDrawProcess(float r);
+
+        void onDrawProcessRight(float r);
     }
 
     public void setOnRangeSeekBarChangeListener(OnRangeSeekBarChangeListener listener) {

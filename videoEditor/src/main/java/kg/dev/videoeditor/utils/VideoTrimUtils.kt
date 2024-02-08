@@ -11,6 +11,8 @@ object VideoTrimUtils {
     const val MAX_CUT_DURATION = 60 * 1000L
     const val MAX_COUNT_RANGE = 60
     const val MIN_CUT_DURATION = 3 * 1000L
+    val PADDING: Int = UnitConverter.dpToPx(30)
+    val PADDING_RIGHT: Int = UnitConverter.dpToPx(11)
 
 
     fun getDeviceWidth(): Int {
@@ -19,6 +21,26 @@ object VideoTrimUtils {
 
     fun getDeviceHeight(): Int {
         return BaseUtils.getContext().resources.displayMetrics.heightPixels
+    }
+
+    fun roundToNearestThousand(input: Int): Int {
+        val remainder = input % 1000
+        val adjustment = if (remainder > 500) {
+            1000 - remainder
+        } else {
+            -remainder
+        }
+        return input + adjustment
+    }
+
+    fun roundToNearestThousand(input: Long): Long {
+        val remainder = input % 1000L
+        val adjustment = if (remainder > 500L) {
+            1000L - remainder
+        } else {
+            -remainder
+        }
+        return input + adjustment
     }
 
 }

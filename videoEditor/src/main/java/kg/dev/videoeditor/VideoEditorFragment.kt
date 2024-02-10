@@ -497,9 +497,9 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
             (RECYCLER_VIEW_PADDING + ((videoPlayer?.currentPosition
                 ?: 0) - scrollPos) * averagePxMs).toInt()
         val end: Int = (PADDING_RIGHT + (rightProgress - scrollPos) * averagePxMs).toInt()
-        animator = ValueAnimator.ofInt(start, end)
-        animator.duration =
+        animator = ValueAnimator.ofInt(start, end).setDuration(
             rightProgress - scrollPos - ((videoPlayer?.currentPosition ?: 0) - scrollPos)
+        )
         Log.e("Anim duration ->", animator.duration.toString())
         Log.e("Anim duration rightProgress ->", rightProgress.toString())
         Log.e("Anim duration scrollPos ->", scrollPos.toString())

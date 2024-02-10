@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'kotlin-parcelize'
 }
 
 android {
@@ -52,7 +53,10 @@ dependencies {
 
     implementation 'com.github.kirich1409:viewbindingpropertydelegate-full:1.5.9'
 
+    implementation("com.vanniktech:android-image-cropper:4.5.0")
+    implementation "com.google.code.gson:gson:2.10"
+
+
 
     implementation project(':videoEditor')
-    implementation project(':imageEditor')
 }

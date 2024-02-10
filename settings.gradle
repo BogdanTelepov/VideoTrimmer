@@ -16,4 +16,3 @@ dependencyResolutionManagement {
 rootProject.name = "VideoTrimmer"
 include ':app'
 include ':videoEditor'
-include ':imageEditor'

@@ -1,55 +1,29 @@
 package com.videotrimmer
 
 import android.Manifest
-import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.widget.Toast
-import androidx.activity.result.ActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import by.kirich1409.viewbindingdelegate.viewBinding
-import com.videotrimmer.databinding.FragmentRootBinding
-import kg.dev.videoeditor.VideoEditorFragment
-import java.io.InputStream
+import com.videotrimmer.databinding.FragmentNewPostBinding
 
 
-class RootFragment : Fragment(R.layout.fragment_root) {
-
-
+class NewPostFragment : Fragment(R.layout.fragment_new_post) {
     companion object {
-        fun create() = RootFragment()
+        fun create() = NewPostFragment()
     }
 
-    private val binding: FragmentRootBinding by viewBinding()
+    private val binding: FragmentNewPostBinding by viewBinding()
 
-    private var listBitmap = mutableListOf<Bitmap>()
+    private var listBitmap = mutableListOf<BaseCell.FilePreview>()
 
-    private var takeOrSelectVideoResultLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result: ActivityResult ->
-        if (result.resultCode == AppCompatActivity.RESULT_OK && result.data != null) {
-            val data = result.data
-            if (data!!.data != null) {
-                Log.d("MainActivity ->", "Video path:: " + data.data)
-                replace(VideoEditorFragment.create(data.data))
-                //   openTrimActivity(data.data.toString())
-            } else {
-                Toast.makeText(requireContext(), "video uri is null", Toast.LENGTH_SHORT).show()
-            }
-        } else Log.d("MainActivity ->", "takeVideoResultLauncher data is null")
-    }
 
     private val pickMultipleMedia =
         registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
@@ -59,12 +33,11 @@ class RootFragment : Fragment(R.layout.fragment_root) {
                 Log.d("PhotoPicker", "Number of items selected: ${uris.size}")
                 uris.forEach {
                     val bitmap = getBitmapFromUri(requireContext(), it)
-                    if (bitmap != null) {
-                        listBitmap.add(bitmap)
-                    }
+                    val fileType = requireContext().getMimeType(it)
+                    listBitmap.add(BaseCell.FilePreview(it, fileType, bitmap))
                     Log.d("PhotoPicker", "Uri path: ${it.path}")
                 }
-              //  replace(ImagePreviewFragment.create(listBitmap))
+                replace(ImagePreviewFragment.create(listBitmap))
             } else {
                 Log.d("PhotoPicker", "No media selected")
             }
@@ -73,12 +46,27 @@ class RootFragment : Fragment(R.layout.fragment_root) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.btnDefaultTrim.setOnClickListener {
-            if (checkCamStoragePer()) openVideo()
+        with(binding) {
+            etInputText.focusAndShowKeyboard()
+            ivAddImage.setOnClickListener {
+                if (checkCamStoragePer()) pickImage()
+            }
         }
-        binding.btnPickImage.setOnClickListener {
-            if (checkCamStoragePer()) pickImage()
+
+        requireActivity().supportFragmentManager.setFragmentResultListener(
+            "EXTRA_IMAGES_LIST",
+            viewLifecycleOwner
+        ) { requestKey, bundle ->
+            val result = bundle.getString("LIST")
+            val data = fromJson<ArrayList<BaseCell.FilePreview>>(result)
+            Log.d("JSON", data.toString())
+
         }
+
+    }
+
+    private fun pickImage() {
+        pickMultipleMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
     }
 
     override fun onRequestPermissionsResult(
@@ -86,30 +74,10 @@ class RootFragment : Fragment(R.layout.fragment_root) {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (isPermissionOk(*grantResults)) {
-            openVideo()
+            pickImage()
         }
     }
 
-    fun getBitmapFromUri(context: Context, uri: Uri): Bitmap? {
-        var inputStream: InputStream? = null
-        try {
-            inputStream = context.contentResolver.openInputStream(uri)
-            return BitmapFactory.decodeStream(inputStream)
-        } finally {
-            inputStream?.close()
-        }
-    }
-
-    private fun openVideo() {
-        try {
-            val intent = Intent()
-            intent.type = "video/*"
-            intent.action = Intent.ACTION_GET_CONTENT
-            takeOrSelectVideoResultLauncher.launch(Intent.createChooser(intent, "Select Video"))
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
 
     private fun checkCamStoragePer(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -129,8 +97,7 @@ class RootFragment : Fragment(R.layout.fragment_root) {
         var allPermitted = false
         for (permission in permissions) {
             allPermitted = (ContextCompat.checkSelfPermission(
-                requireActivity(),
-                permission
+                requireActivity(), permission
             ) == PackageManager.PERMISSION_GRANTED)
             if (!allPermitted) break
         }
@@ -153,7 +120,5 @@ class RootFragment : Fragment(R.layout.fragment_root) {
         return isAllGranted
     }
 
-    private fun pickImage() {
-        pickMultipleMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-    }
+
 }

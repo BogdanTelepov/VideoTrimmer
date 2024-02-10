@@ -1,14 +1,30 @@
-<resources>
+<resources xmlns:ns2="http://schemas.android.com/apk/res-auto">
     <!-- Base application theme. -->
     <style name="Base.Theme.VideoTrimmer" parent="Theme.MaterialComponents.Light.NoActionBar.Bridge">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+
+        <item name="textInputStyle">@style/Widget.MyApp.TextInputLayout</item>
+
     </style>
 
     <style name="Theme.VideoTrimmer" parent="Base.Theme.VideoTrimmer" />
 
 
+    <style name="Widget.MyApp.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.FilledBox">
+        <item name="boxStrokeWidth">0dp</item>
+        <item name="boxStrokeWidthFocused">0dp</item>
+        <!-- left and right padding -->
 
+        <item name="android:paddingStart" ns2:ignore="NewApi">0dp</item>
+        <item name="android:paddingEnd" ns2:ignore="NewApi">0dp</item>
+        <item name="android:paddingLeft">0dp</item>
+        <item name="android:paddingRight">0dp</item>
+
+        <!-- top and bottom padding -->
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+    </style>
 
 
 </resources>

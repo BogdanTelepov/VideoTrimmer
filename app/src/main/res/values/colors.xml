@@ -2,4 +2,8 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="text">#F2F8F9</color>
+    <color name="border">#333A3C</color>
+    <color name="accent1">#14ABCC</color>
+    <color name="disabled">#8F979E</color>
 </resources>

@@ -8,7 +8,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        replace(NewPostFragment.create(), addToBackStack = false)
+        replace(RootFragment.create(), addToBackStack = false)
 
     }
 

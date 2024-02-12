@@ -52,6 +52,9 @@ class ImagePreviewFragment : Fragment(R.layout.fragment_image_preview) {
         selectItem(0)
         imageAdapter.onImageClick = {
             filePreview = it
+            if (it.mediaType == MediaType.MediaTypeVideo) {
+                // TODO: replace Video Editor
+            }
             binding.cropImageView.setImageBitmap(it.bitmap)
         }
         binding.ivResize.setOnClickListener {
@@ -77,12 +80,12 @@ class ImagePreviewFragment : Fragment(R.layout.fragment_image_preview) {
         }
 
         binding.toolbarNext.setOnClickListener {
-            val bundle = Bundle()
-            val json = toJson(mutableSetItems)
-            bundle.putString("LIST", json)
-            requireActivity().supportFragmentManager.setFragmentResult("EXTRA_IMAGES_LIST", bundle)
-            requireActivity().supportFragmentManager.popBackStack()
-            //  binding.cropImageView.croppedImageAsync()
+//            val bundle = Bundle()
+//            val json = toJson(mutableSetItems)
+//            bundle.putString("LIST", json)
+//            requireActivity().supportFragmentManager.setFragmentResult("EXTRA_IMAGES_LIST", bundle)
+//            requireActivity().supportFragmentManager.popBackStack()
+              binding.cropImageView.croppedImageAsync()
         }
         binding.cropImageView.setOnCropImageCompleteListener { _, result ->
             if (result.isSuccessful) {
@@ -119,8 +122,25 @@ class ImagePreviewFragment : Fragment(R.layout.fragment_image_preview) {
                     uris.forEach {
                         val bitmap = getBitmapFromUri(requireContext(), it)
                         val fileType = requireContext().getMimeType(it)
-                        mutableSetItems.add(BaseCell.FilePreview(it, fileType, bitmap))
-                        imageAdapter.addItem(BaseCell.FilePreview(it, fileType, bitmap))
+                        val mediaType = requireContext().getMediaType(it)
+                        mutableSetItems.add(
+                            BaseCell.FilePreview(
+                                it,
+                                fileType,
+                                bitmap,
+                                false,
+                                mediaType
+                            )
+                        )
+                        imageAdapter.addItem(
+                            BaseCell.FilePreview(
+                                it,
+                                fileType,
+                                bitmap,
+                                false,
+                                mediaType
+                            )
+                        )
                         Log.e("List items ->", mutableSetItems.size.toString())
                     }
 

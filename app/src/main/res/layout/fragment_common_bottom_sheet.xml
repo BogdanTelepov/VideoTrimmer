@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/ModalBottomSheet"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="32dp"
+    app:behavior_hideable="true"
+    app:behavior_skipCollapsed="true">
+
+
+    <View
+        android:id="@+id/separatorView"
+        android:layout_width="60dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_rounded_separator" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="24dp"
+        android:text="Вы хотите отменить\nпубликацию поста?"
+        android:textColor="@color/text"
+        android:textSize="24sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="16dp"
+        android:text="Введенные данные не будут сохранены.\nПожалуйста, выберите действие:"
+        android:textAlignment="center"
+        android:textColor="@color/secondary_text" />
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="24dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_button_stroke"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="Отмена"
+            android:textAllCaps="false"
+            android:textColor="@color/accent1" />
+
+        <View
+            android:layout_width="8dp"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/btnContinue"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_button_rounded_12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="Продолжить"
+            android:textAllCaps="false"
+            android:textColor="@color/text" />
+
+
+    </LinearLayout>
+
+</LinearLayout>

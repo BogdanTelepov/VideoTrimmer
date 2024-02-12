@@ -13,9 +13,7 @@ class VideoThumbnailViewHolder(private val binding: ItemVideoThumbnailBinding) :
     fun onBind(bitmap: Bitmap) = with(binding) {
         val itemCount = bindingAdapter?.itemCount ?: 0
         val itemWidth = VIDEO_FRAMES_WIDTH / itemCount
-        val bitmapNew = Bitmap.createScaledBitmap(
-            bitmap, itemWidth, THUMB_HEIGHT, false
-        )
+        val bitmapNew = Bitmap.createScaledBitmap(bitmap, itemWidth, THUMB_HEIGHT, false)
         ivCover.setImageBitmap(bitmapNew)
     }
 

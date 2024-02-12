@@ -9,6 +9,10 @@ import kotlinx.parcelize.Parcelize
 sealed class BaseCell : Parcelable {
     object AddImage : BaseCell()
     data class FilePreview(
-        var uri: Uri, var fileType: String?, var bitmap: Bitmap?, var isSelected: Boolean = true
+        var uri: Uri,
+        var fileType: String?,
+        var bitmap: Bitmap?,
+        var isSelected: Boolean = true,
+        val mediaType: MediaType
     ) : BaseCell()
 }

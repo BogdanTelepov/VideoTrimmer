@@ -6,22 +6,20 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kg.dev.videoeditor.utils.UnitConverter.pxToDp
-import kg.dev.videoeditor.utils.VideoTrimUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class VideoEditorViewModel : ViewModel() {
+class ChangeThumbnailViewModel : ViewModel() {
 
-    private val _frameArray: MutableStateFlow<List<Bitmap>> = MutableStateFlow(emptyList())
-    val frameArray get() = _frameArray.asStateFlow()
+    private val _bitmap = MutableStateFlow<Bitmap?>(null)
+    val bitmap get() = _bitmap.asStateFlow()
 
     fun loadThumbNails(retriever: MediaMetadataRetriever, uri: Uri, context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
-            val array = mutableListOf<Bitmap>()
+
             retriever.setDataSource(context, uri)
             val duration =
                 retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong()
@@ -32,22 +30,13 @@ class VideoEditorViewModel : ViewModel() {
                 val frame = retriever.getFrameAtTime(
                     currentTime * 1000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC
                 )
-                val newBitmap =
-                    frame?.let {
-                        Bitmap.createScaledBitmap(
-                            it,
-                            pxToDp(120),
-                            VideoTrimUtils.THUMB_HEIGHT,
-                            false
-                        )
+
+                withContext(Dispatchers.Main) {
+                    frame.let {
+                        _bitmap.value = it
                     }
-                newBitmap?.let {
-                    array.add(it)
                 }
                 currentTime += 1000
-            }
-            withContext(Dispatchers.Main) {
-                _frameArray.value = array
             }
             retriever.release()
         }

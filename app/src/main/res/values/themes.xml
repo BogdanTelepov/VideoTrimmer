@@ -26,5 +26,38 @@
         <item name="android:paddingBottom">0dp</item>
     </style>
 
+    <style name="DialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/slide_up</item>
+        <item name="android:windowExitAnimation">@anim/slide_down</item>
+        <item name="android:backgroundTint">#1B1B1F</item>
+    </style>
+
+    <style name="ModalBottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="android:windowSoftInputMode">stateUnspecified|adjustPan</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.88</item>
+        <item name="android:background">@drawable/bg_rounded_top_tab</item>
+        <item name="android:windowBackground">@drawable/bg_rounded_top_tab</item>
+        <item name="android:windowMinWidthMinor">300dp</item>
+    </style>
+
+    <style name="BottomSheetDialogTheme" parent="Theme.Design.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/BottomSheetStyle</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="BottomSheetStyle" parent="Widget.Design.BottomSheet.Modal">
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.88</item>
+        <item name="android:background">@drawable/bg_rounded_top_tab</item>
+    </style>
+
+    <style name="CircularDeterminateProgressBar">
+        <item name="android:indeterminateOnly">false</item>
+        <item name="android:progressDrawable">@drawable/circle_progress</item>
+    </style>
+
 
 </resources>

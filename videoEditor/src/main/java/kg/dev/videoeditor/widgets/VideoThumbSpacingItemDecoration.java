@@ -5,15 +5,11 @@ import android.view.View;
 
 import androidx.recyclerview.widget.RecyclerView;
 
-/**
- * @author LLhon
- * @Date 2018/4/20 16:51
- * @description 视频缩略图横向RecyclerView
- */
+
 public class VideoThumbSpacingItemDecoration extends RecyclerView.ItemDecoration {
 
-    private int mSpace; //间距
-    private int mThumbnailsCount; //缩略图item总数量
+    private int mSpace;
+    private int mThumbnailsCount;
 
     public VideoThumbSpacingItemDecoration(int space, int thumbnailsCount) {
         mSpace = space;
@@ -23,7 +19,6 @@ public class VideoThumbSpacingItemDecoration extends RecyclerView.ItemDecoration
     @Override
     public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
         int position = parent.getChildAdapterPosition(view);
-        //第一个与最后一个添加空白间距
         if (position == 0) {
             outRect.left = mSpace;
             outRect.right = 0;

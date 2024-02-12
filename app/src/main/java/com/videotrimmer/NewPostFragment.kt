@@ -10,8 +10,11 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
+import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import by.kirich1409.viewbindingdelegate.viewBinding
+import com.google.gson.reflect.TypeToken
 import com.videotrimmer.databinding.FragmentNewPostBinding
 
 
@@ -24,6 +27,12 @@ class NewPostFragment : Fragment(R.layout.fragment_new_post) {
 
     private var listBitmap = mutableListOf<BaseCell.FilePreview>()
 
+    private val listImagesAdapter by lazy {
+        ListImagesAdapter()
+    }
+
+    private val images = ArrayList<BaseCell.FilePreview>()
+
 
     private val pickMultipleMedia =
         registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
@@ -34,7 +43,8 @@ class NewPostFragment : Fragment(R.layout.fragment_new_post) {
                 uris.forEach {
                     val bitmap = getBitmapFromUri(requireContext(), it)
                     val fileType = requireContext().getMimeType(it)
-                    listBitmap.add(BaseCell.FilePreview(it, fileType, bitmap))
+                    val mediaType = requireContext().getMediaType(it)
+                    listBitmap.add(BaseCell.FilePreview(it, fileType, bitmap, false, mediaType))
                     Log.d("PhotoPicker", "Uri path: ${it.path}")
                 }
                 replace(ImagePreviewFragment.create(listBitmap))
@@ -51,14 +61,40 @@ class NewPostFragment : Fragment(R.layout.fragment_new_post) {
             ivAddImage.setOnClickListener {
                 if (checkCamStoragePer()) pickImage()
             }
+            rvListImages.apply {
+                adapter = listImagesAdapter
+                addSpaceDecorator(horizontalSpace = dip(16))
+            }
+            listImagesAdapter.onRemoveClick = {
+                images.remove(it)
+                listImagesAdapter.removeItem(it)
+                rvListImages.isVisible = images.isNotEmpty()
+            }
+            ivClose.setOnClickListener {
+                CommonBottomSheet.showDialog(this@NewPostFragment) {
+
+                }
+            }
+            progressBarLayout.progressBar.max = 100
+
+            etInputText.doOnTextChanged { text, _, _, _ ->
+                val textSize = text?.length ?: 0
+                progressBarLayout.progressBar.progress = textSize
+                progressBarLayout.tvProgress.text = "${100 - textSize}"
+            }
         }
 
         requireActivity().supportFragmentManager.setFragmentResultListener(
-            "EXTRA_IMAGES_LIST",
-            viewLifecycleOwner
+            "EXTRA_IMAGES_LIST", viewLifecycleOwner
         ) { requestKey, bundle ->
             val result = bundle.getString("LIST")
-            val data = fromJson<ArrayList<BaseCell.FilePreview>>(result)
+            val type = object : TypeToken<ArrayList<BaseCell.FilePreview>>() {}.type
+            val data = result?.let { parseArray<ArrayList<BaseCell.FilePreview>>(it, type) }
+            if (data != null) {
+                images.addAll(data)
+                listImagesAdapter.addItems(data)
+                binding.rvListImages.isVisible = images.isNotEmpty()
+            }
             Log.d("JSON", data.toString())
 
         }

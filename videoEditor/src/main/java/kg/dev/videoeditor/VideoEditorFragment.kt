@@ -7,13 +7,13 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.animation.LinearInterpolator
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -94,6 +94,9 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
 
     private val mOnRangeSeekBarChangeListener: RangeSeekBar.OnRangeSeekBarChangeListener =
         object : RangeSeekBar.OnRangeSeekBarChangeListener {
+
+
+            @OptIn(UnstableApi::class)
             override fun onRangeSeekBarValuesChanged(
                 bar: RangeSeekBar?,
                 minValue: Long,
@@ -106,24 +109,30 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
                 rightProgress = (maxValue + scrollPos)
                 when (action) {
                     MotionEvent.ACTION_DOWN -> {
+                        binding.totalTrimDuration.isVisible = false
+                        binding.videoDurationLayout.isVisible = true
                         isSeeking = false
                         //    anim()
                         // videoPause()
                     }
 
                     MotionEvent.ACTION_MOVE -> {
+                        binding.totalTrimDuration.isVisible = true
+                        binding.videoDurationLayout.isVisible = false
+                        binding.totalTrimDuration.text =
+                            "${(rightProgress - leftProgress).div(1000)}c"
+
+                        //   anim()
                         isSeeking = true
-
-
-                        //   seekTo((if (pressedThumb === RangeSeekBar.Thumb.MIN) leftProgress else rightProgress))
-
-
+                        //  videoPlayer?.seekTo(leftProgress)
+                        seekTo((if (pressedThumb === RangeSeekBar.Thumb.MIN) leftProgress else rightProgress))
+                        // anim()
                     }
 
                     MotionEvent.ACTION_UP -> {
-
+                        binding.totalTrimDuration.isVisible = false
+                        binding.videoDurationLayout.isVisible = true
                         isSeeking = false
-
                         videoPlayer?.seekTo(leftProgress)
                         // anim()
 //                    videoStart()
@@ -139,13 +148,11 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
             }
 
             override fun onDrawProcess(r: Float) {
-                Log.e("onDrawProcess Left", r.toString())
                 binding.positionIcon.x = r + PADDING
             }
 
             override fun onDrawProcessRight(r: Float) {
-                //binding.positionIcon.x = r - PADDING
-                Log.e("onDrawProcess Right", r.toString())
+
             }
         }
 
@@ -243,8 +250,8 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
     @OptIn(UnstableApi::class)
     override fun onPlayerPositionChanged(position: Long) {
         binding.tvVideoStartDuration.text = formatSeconds(position.div(1000))
-        Log.e("Current position ->", formatSeconds(position.div(1000)))
         if ((videoPlayer?.currentPosition ?: 0L) > rightProgress) {
+            //seekTo(leftProgress)
             videoPlayer?.playWhenReady = false
             binding.checkboxPlay.apply {
                 isChecked = false
@@ -292,21 +299,20 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
                         when (playbackState) {
                             Player.STATE_ENDED -> {
                                 isVideoEnded = true
-                                if (animator.isRunning) {
-                                    animator.cancel()
-                                }
-                                anim()
                                 checkboxPlay.apply {
                                     isChecked = false
                                     isSelected = false
                                 }
                                 videoPlayer?.playWhenReady = false
-
+                                positionIcon.clearAnimation()
                             }
 
                             Player.STATE_READY -> {
                                 isVideoEnded = false
-//
+//                                positionIcon.clearAnimation()
+//                                if (animator.isRunning) {
+//                                    animator.cancel()
+//                                }
 
                             }
 
@@ -474,7 +480,7 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
     }
 
     private fun parseDuration(duration: Long) {
-        val list = (0..duration.toInt()).toMutableList()
+        val list = (1..duration.toInt()).toMutableList()
         if (duration > 15) {
             val firstElement = list.first()
             val lastElement = list.last()
@@ -492,17 +498,19 @@ class VideoEditorFragment : Fragment(R.layout.fragment_video_editor), PlayerPosi
 
 
     private fun anim() = with(binding) {
+
+        if (positionIcon.visibility == View.GONE) {
+            positionIcon.visibility = View.VISIBLE
+        }
         val params = positionIcon.layoutParams as ConstraintLayout.LayoutParams
         val start: Int =
             (RECYCLER_VIEW_PADDING + ((videoPlayer?.currentPosition
                 ?: 0) - scrollPos) * averagePxMs).toInt()
-        val end: Int = (PADDING_RIGHT + (rightProgress - scrollPos) * averagePxMs).toInt()
-        animator = ValueAnimator.ofInt(start, end).setDuration(
+        val end: Int = (RECYCLER_VIEW_PADDING + (rightProgress - scrollPos) * averagePxMs).toInt()
+        animator = ValueAnimator.ofInt(start, end)
+        animator.setDuration(
             rightProgress - scrollPos - ((videoPlayer?.currentPosition ?: 0) - scrollPos)
         )
-        Log.e("Anim duration ->", animator.duration.toString())
-        Log.e("Anim duration rightProgress ->", rightProgress.toString())
-        Log.e("Anim duration scrollPos ->", scrollPos.toString())
 
         animator.interpolator = LinearInterpolator()
         animator.addUpdateListener { animation ->

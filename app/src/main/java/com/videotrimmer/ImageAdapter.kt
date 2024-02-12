@@ -1,13 +1,14 @@
 package com.videotrimmer
 
 import android.content.res.ColorStateList
-import android.graphics.Bitmap
 import android.util.DisplayMetrics
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.videotrimmer.databinding.ItemAddImageBinding
 import com.videotrimmer.databinding.ItemImagePreviewBinding
+import kg.dev.videoeditor.utils.formatSeconds
+import kg.dev.videoeditor.utils.getDuration
 
 class ImageAdapter(private val addImage: () -> Unit) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -107,10 +108,12 @@ class ImageAdapter(private val addImage: () -> Unit) :
         }
 
         fun onBind(bitmap: BaseCell.FilePreview, position: Int) = with(binding) {
-            val bitmapNew = bitmap.bitmap?.let {
-                Bitmap.createScaledBitmap(
-                    it, dpToPx(88), dpToPx(88), false
-                )
+            if (bitmap.mediaType == MediaType.MediaTypeVideo) {
+                val duration = itemContext.getDuration(bitmap.uri)
+                val formattedTime = formatSeconds(duration)
+                tvDuration.visible()
+                tvDuration.text = formattedTime
+
             }
             val scaledBitmap = bitmap.bitmap?.let { scaleBitmap(it, 88f, 88f) }
             ivImage.setImageBitmap(scaledBitmap)

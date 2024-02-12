@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    tools:context=".ChangeThumbnailFragment">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:elevation="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:elevation="0dp"
+            android:paddingVertical="16dp"
+            app:navigationIcon="@drawable/ic_chevron_left">
+
+            <TextView
+                android:id="@+id/toolbarTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="Изменить обложку"
+                android:textColor="#FCFDFE"
+                android:textSize="@dimen/_16ssp" />
+
+            <TextView
+                android:id="@+id/toolbarNext"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginEnd="@dimen/_16ssp"
+                android:text="Готово"
+                android:textColor="#14ABCC"
+                android:textSize="@dimen/_10ssp" />
+
+        </androidx.appcompat.widget.Toolbar>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <TextView
+        android:id="@+id/tvTopTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="32dp"
+        android:gravity="center"
+        android:text="Выберите обложку для вашего видео: кадр из\nвидео или фото из галереи"
+        android:textAlignment="center"
+        android:textColor="@color/secondary_text"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout" />
+
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardView"
+        android:layout_width="match_parent"
+        android:layout_height="343dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="40dp"
+        app:cardCornerRadius="12dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvTopTitle">
+
+        <ImageView
+            android:id="@+id/ivImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:src="@tools:sample/avatars" />
+    </com.google.android.material.card.MaterialCardView>
+
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvCovers"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="40dp"
+        android:orientation="horizontal"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintTop_toBottomOf="@id/cardView"
+        tools:listitem="@layout/item_video_cover" />
+
+
+    <Button
+        android:id="@+id/btnAddImage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:text="Добавить из галереи"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/rvCovers" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

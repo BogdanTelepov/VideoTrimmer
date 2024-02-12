@@ -95,6 +95,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            android:visibility="visible"
             app:layout_constraintEnd_toStartOf="@id/checkboxVolume"
             app:layout_constraintStart_toEndOf="@id/checkboxPlay"
             app:layout_constraintTop_toTopOf="parent">
@@ -128,6 +129,20 @@
 
         </LinearLayout>
 
+        <TextView
+
+            android:id="@+id/totalTrimDuration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/accent1"
+            android:textSize="14sp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@+id/checkboxPlay"
+            app:layout_constraintEnd_toStartOf="@id/checkboxVolume"
+            app:layout_constraintStart_toEndOf="@id/checkboxPlay"
+            app:layout_constraintTop_toTopOf="@+id/checkboxPlay"
+            tools:text="29c" />
+
 
         <kg.dev.videoeditor.widgets.CheckableImageView
             android:id="@+id/checkboxVolume"
@@ -160,8 +175,6 @@
         app:layout_constraintTop_toBottomOf="@+id/videoOperations"
         tools:itemCount="10"
         tools:listitem="@layout/item_video_step" />
-
-
 
 
     <FrameLayout

@@ -56,3 +56,19 @@ fun scaleBitmap(bitmap: Bitmap, targetWidthDp: Float, targetHeightDp: Float): Bi
 
     return Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true)
 }
+
+
+enum class MediaType {
+    MediaTypeImage,
+    MediaTypeVideo,
+    Unknown
+}
+
+fun Context.getMediaType(source: Uri): MediaType {
+    val mediaTypeRaw = this.contentResolver.getType(source)
+    if (mediaTypeRaw?.startsWith("image") == true)
+        return MediaType.MediaTypeImage
+    if (mediaTypeRaw?.startsWith("video") == true)
+        return MediaType.MediaTypeVideo
+    return MediaType.Unknown
+}

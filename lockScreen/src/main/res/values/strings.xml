@@ -1,0 +1,18 @@
+<resources>
+    <string name="lock_screen_title_pf">Код быстрого доступа</string>
+    <string name="use_pin_pf">Use pin</string>
+    <string name="sign_in_pf">Sign in</string>
+
+    <string name="no_fingerprints_message_pf">No biometric data found. Please add fingerprints or face recognition in the settings if you want to use this authorization method."</string>
+    <string name="no_fingerprints_title_pf">"No biometric data found"</string>
+
+    <string name="fingerprint_description_pf">Confirm fingerprint to continue</string>
+    <string name="fingerprint_hint_pf">Touch sensor</string>
+    <string name="description_fingerprint_icon_pf">Fingerprint icon</string>
+
+    <string name="cancel_pf">Cancel</string>
+    <string name="settings_pf">Settings</string>
+    <string name="repeat_code_title">Повторите код</string>
+    <string name="create_code_title">Придумайте код</string>
+    <string name="input_code_title">Введите код</string>
+</resources>

@@ -1,21 +1,20 @@
 plugins {
-    id 'com.android.application'
+    id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
-    id 'kotlin-parcelize'
 }
 
+final def lifecycle_version = "2.0.0"
+
 android {
-    namespace 'com.videotrimmer'
-    compileSdk 34
+    namespace 'com.lockscreen'
+    compileSdk 33
 
     defaultConfig {
-        applicationId "com.videotrimmer"
         minSdk 24
-        targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        targetSdk 33
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
     }
 
     buildTypes {
@@ -32,7 +31,7 @@ android {
         jvmTarget = '1.8'
     }
 
-    buildFeatures {
+    buildFeatures{
         viewBinding true
     }
 }
@@ -40,24 +39,15 @@ android {
 dependencies {
 
     implementation 'androidx.core:core-ktx:1.8.0'
-    implementation 'androidx.appcompat:appcompat:1.5.0'
-    implementation 'com.google.android.material:material:1.10.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
-    implementation 'androidx.activity:activity-ktx:1.7.0'
-    implementation 'androidx.fragment:fragment-ktx:1.5.5'
+    implementation "androidx.biometric:biometric:1.0.1"
 
+    implementation "androidx.lifecycle:lifecycle-viewmodel:$lifecycle_version"
+    implementation 'androidx.fragment:fragment-ktx:1.6.0'
 
-    implementation 'com.github.kirich1409:viewbindingpropertydelegate-full:1.5.9'
-
-    implementation("com.vanniktech:android-image-cropper:4.5.0")
-    implementation "com.google.code.gson:gson:2.10"
-
-
-
-    implementation project(':videoEditor')
-    implementation project(':lockScreen')
 }
